@@ -23,7 +23,8 @@ import gradio as gr
 import torch
 import trimesh
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import uuid
 
@@ -1222,6 +1223,7 @@ if __name__ == '__main__':
     parser.add_argument('--queue_max_size', type=int, default=16)
     parser.add_argument('--concurrency_limit', type=int, default=1)
     parser.add_argument('--timeout_keep_alive', type=int, default=120)
+    parser.add_argument('--max_file_size', type=str, default='64mb')
     args = parser.parse_args()
 
     SAVE_DIR = args.cache_path
@@ -1306,6 +1308,25 @@ if __name__ == '__main__':
     # https://discuss.huggingface.co/t/how-to-serve-an-html-file/33921/2
     # create a FastAPI app
     app = FastAPI()
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.middleware("http")
+    async def log_upload_failures(request: Request, call_next):
+        try:
+            response = await call_next(request)
+            if request.url.path.startswith(("/upload", "/queue", "/gradio_api")) and response.status_code >= 400:
+                logger.error("Gradio request failed: %s %s -> %s", request.method, request.url.path,
+                             response.status_code)
+            return response
+        except Exception:
+            logger.exception("Unhandled backend error while serving %s %s", request.method, request.url.path)
+            raise
 
     @app.get("/health")
     async def health():
@@ -1320,6 +1341,7 @@ if __name__ == '__main__':
             "status": "ok",
             "queue_max_size": args.queue_max_size,
             "concurrency_limit": args.concurrency_limit,
+            "max_file_size": args.max_file_size,
             "gpu": gpu,
         }
 
@@ -1337,12 +1359,24 @@ if __name__ == '__main__':
         max_size=args.queue_max_size,
         default_concurrency_limit=args.concurrency_limit,
     )
-    app = gr.mount_gradio_app(app, demo, path="/")
+    app = gr.mount_gradio_app(
+        app,
+        demo,
+        path="/",
+        server_name=args.host,
+        server_port=args.port,
+        show_error=True,
+        max_file_size=args.max_file_size,
+    )
     uvicorn.run(
         app,
         host=args.host,
         port=args.port,
         workers=1,
         timeout_keep_alive=args.timeout_keep_alive,
-        limit_concurrency=max(args.queue_max_size + 8, 32),
+        ws_max_size=256 * 1024 * 1024,
+        ws_ping_interval=20,
+        ws_ping_timeout=60,
+        proxy_headers=True,
+        forwarded_allow_ips="*",
     )
