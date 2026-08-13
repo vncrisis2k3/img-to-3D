@@ -359,33 +359,41 @@ def build_app():
     if TURBO_MODE:
         title = title.replace(':', '-Turbo: Fast ')
 
+    mode_badge = "Bản Mini Turbo" if TURBO_MODE and 'mini' in args.subfolder else "Hunyuan3D"
+    texture_badge = "Có tạo texture" if HAS_TEXTUREGEN else "Chỉ tạo mesh"
     title_html = f"""
     <section class="app-hero">
       <div>
-        <p class="app-kicker">Tencent Hunyuan3D Team</p>
-        <h1>{title}</h1>
-        <p class="app-subtitle">Create production-ready 3D mesh assets from image prompts, then export GLB, OBJ, PLY, or STL.</p>
+        <p class="app-kicker">AI Ảnh sang 3D</p>
+        <h1>Tạo mô hình 3D từ ảnh</h1>
+        <p class="app-subtitle">Biến ảnh đầu vào thành mesh 3D, tạo texture khi khả dụng và xuất file GLB, OBJ, PLY hoặc STL.</p>
+        <div class="app-badges">
+          <span>{mode_badge}</span>
+          <span>{texture_badge}</span>
+          <span>GPU Ready</span>
+        </div>
       </div>
       <nav class="app-links">
         <a href="https://github.com/tencent/Hunyuan3D-2">GitHub</a>
-        <a href="http://3d-models.hunyuan.tencent.com">Homepage</a>
+        <a href="http://3d-models.hunyuan.tencent.com">Trang chủ</a>
         <a href="https://3d.hunyuan.tencent.com">Studio</a>
-        <a href="#">Report</a>
-        <a href="https://huggingface.co/Tencent/Hunyuan3D-2">Models</a>
+        <a href="#">Báo cáo</a>
+        <a href="https://huggingface.co/Tencent/Hunyuan3D-2">Model</a>
       </nav>
     </section>
     """
     custom_css = """
     :root {
-        --studio-bg: #f6f8fb;
+        --studio-bg: #eef2f7;
         --studio-panel: #ffffff;
-        --studio-border: #dbe3ef;
+        --studio-border: #cfd9e8;
         --studio-text: #111827;
         --studio-muted: #5b6677;
-        --studio-accent: #2563eb;
-        --studio-accent-strong: #1d4ed8;
-        --studio-soft: #eef4ff;
-        --studio-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+        --studio-accent: #0f766e;
+        --studio-accent-strong: #0d5f59;
+        --studio-blue: #2563eb;
+        --studio-soft: #e9f7f5;
+        --studio-shadow: 0 18px 45px rgba(15, 23, 42, 0.10);
     }
 
     body, gradio-app {
@@ -409,11 +417,13 @@ def build_app():
         align-items: flex-end;
         justify-content: space-between;
         gap: 24px;
-        padding: 22px 24px;
+        padding: 24px 28px;
         margin-bottom: 18px;
         border: 1px solid var(--studio-border);
         border-radius: 8px;
-        background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%);
+        background:
+            linear-gradient(135deg, rgba(15, 118, 110, 0.10), rgba(37, 99, 235, 0.08)),
+            #ffffff;
         box-shadow: var(--studio-shadow);
     }
 
@@ -439,6 +449,26 @@ def build_app():
         color: var(--studio-muted);
         font-size: 15px;
         line-height: 1.5;
+    }
+
+    .app-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+    }
+
+    .app-badges span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border: 1px solid rgba(15, 118, 110, 0.22);
+        border-radius: 8px;
+        background: #ffffff;
+        color: #0f4f4a;
+        font-size: 12px;
+        font-weight: 700;
     }
 
     .app-links {
@@ -475,7 +505,7 @@ def build_app():
 
     .studio-panel {
         min-width: 0 !important;
-        padding: 14px !important;
+        padding: 16px !important;
         border: 1px solid var(--studio-border) !important;
         border-radius: 8px !important;
         background: var(--studio-panel) !important;
@@ -489,7 +519,7 @@ def build_app():
     }
 
     .studio-viewer {
-        padding: 14px !important;
+        padding: 16px !important;
         border: 1px solid var(--studio-border) !important;
         border-radius: 8px !important;
         background: #fbfdff !important;
@@ -498,7 +528,7 @@ def build_app():
 
     .studio-gallery {
         min-width: 280px !important;
-        padding: 14px !important;
+        padding: 16px !important;
         border: 1px solid var(--studio-border) !important;
         border-radius: 8px !important;
         background: var(--studio-panel) !important;
@@ -510,6 +540,12 @@ def build_app():
     .studio-gallery .tabs {
         border: 0 !important;
         background: transparent !important;
+    }
+
+    .studio-panel .wrap,
+    .studio-viewer .wrap,
+    .studio-gallery .wrap {
+        border-radius: 8px !important;
     }
 
     .tab-nav {
@@ -529,12 +565,16 @@ def build_app():
         background: var(--studio-soft) !important;
     }
 
+    .tabs > .tabitem {
+        padding-top: 12px !important;
+    }
+
     .primary-action button,
     button.primary {
         border-radius: 8px !important;
         background: var(--studio-accent) !important;
         border-color: var(--studio-accent) !important;
-        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22) !important;
+        box-shadow: 0 10px 24px rgba(15, 118, 110, 0.24) !important;
         font-weight: 700 !important;
     }
 
@@ -546,6 +586,27 @@ def build_app():
     .secondary-action button {
         border-radius: 8px !important;
         font-weight: 650 !important;
+    }
+
+    .panel-heading {
+        margin: 0 0 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--studio-border);
+    }
+
+    .panel-heading strong {
+        display: block;
+        color: #0f172a;
+        font-size: 16px;
+        line-height: 1.2;
+    }
+
+    .panel-heading span {
+        display: block;
+        margin-top: 4px;
+        color: var(--studio-muted);
+        font-size: 12px;
+        line-height: 1.4;
     }
 
     .studio-status {
@@ -597,9 +658,29 @@ def build_app():
         overflow: hidden !important;
     }
 
+    .studio-panel .dropzone {
+        border: 1px dashed #9fb3ca !important;
+        background: #f8fbff !important;
+    }
+
     .studio-panel textarea,
     .studio-panel input,
     .studio-panel select {
+        border-radius: 8px !important;
+    }
+
+    .studio-panel label,
+    .studio-viewer label,
+    .studio-gallery label {
+        color: #253043 !important;
+        font-weight: 650 !important;
+    }
+
+    .studio-panel .form,
+    .studio-panel .block,
+    .studio-viewer .block,
+    .studio-gallery .block {
+        border-color: #dbe3ef !important;
         border-radius: 8px !important;
     }
 
@@ -617,7 +698,7 @@ def build_app():
         border-radius: 8px;
         border: 1px dashed #b8c7df;
         background:
-            linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(20, 184, 166, 0.08)),
+            linear-gradient(135deg, rgba(15, 118, 110, 0.10), rgba(37, 99, 235, 0.10)),
             #f8fbff;
         display: flex;
         justify-content: center;
@@ -655,30 +736,36 @@ def build_app():
 
         with gr.Row(elem_classes='studio-grid'):
             with gr.Column(scale=3, elem_classes='studio-panel'):
+                gr.HTML("""
+                <div class="panel-heading">
+                    <strong>Nguồn đầu vào</strong>
+                    <span>Tải ảnh rõ chủ thể hoặc chọn một mẫu có sẵn.</span>
+                </div>
+                """)
                 with gr.Tabs(selected='tab_img_prompt') as tabs_prompt:
-                    with gr.Tab('Image Prompt', id='tab_img_prompt', visible=not MV_MODE) as tab_ip:
-                        image = gr.Image(label='Source Image', type='pil', image_mode='RGBA', height=330)
+                    with gr.Tab('Ảnh đầu vào', id='tab_img_prompt', visible=not MV_MODE) as tab_ip:
+                        image = gr.Image(label='Ảnh nguồn', type='pil', image_mode='RGBA', height=330)
 
-                    with gr.Tab('Text Prompt', id='tab_txt_prompt', visible=HAS_T2I and not MV_MODE) as tab_tp:
-                        caption = gr.Textbox(label='Text Prompt',
-                                             placeholder='HunyuanDiT will be used to generate image.',
-                                             info='Example: A 3D model of a cute cat, white background')
-                    with gr.Tab('MultiView Prompt', visible=MV_MODE) as tab_mv:
+                    with gr.Tab('Mô tả văn bản', id='tab_txt_prompt', visible=HAS_T2I and not MV_MODE) as tab_tp:
+                        caption = gr.Textbox(label='Mô tả',
+                                             placeholder='Ví dụ: mô hình 3D một chú mèo trắng, nền trắng.',
+                                             info='HunyuanDiT sẽ tạo ảnh trung gian từ mô tả này.')
+                    with gr.Tab('Nhiều góc nhìn', visible=MV_MODE) as tab_mv:
                         # gr.Label('Please upload at least one front image.')
                         with gr.Row():
-                            mv_image_front = gr.Image(label='Front', type='pil', image_mode='RGBA', height=140,
+                            mv_image_front = gr.Image(label='Mặt trước', type='pil', image_mode='RGBA', height=140,
                                                       min_width=100, elem_classes='mv-image')
-                            mv_image_back = gr.Image(label='Back', type='pil', image_mode='RGBA', height=140,
+                            mv_image_back = gr.Image(label='Mặt sau', type='pil', image_mode='RGBA', height=140,
                                                      min_width=100, elem_classes='mv-image')
                         with gr.Row():
-                            mv_image_left = gr.Image(label='Left', type='pil', image_mode='RGBA', height=140,
+                            mv_image_left = gr.Image(label='Bên trái', type='pil', image_mode='RGBA', height=140,
                                                      min_width=100, elem_classes='mv-image')
-                            mv_image_right = gr.Image(label='Right', type='pil', image_mode='RGBA', height=140,
+                            mv_image_right = gr.Image(label='Bên phải', type='pil', image_mode='RGBA', height=140,
                                                       min_width=100, elem_classes='mv-image')
 
                 with gr.Row(equal_height=True):
-                    btn = gr.Button(value='Generate Mesh', variant='primary', min_width=100, elem_classes='primary-action')
-                    btn_all = gr.Button(value='Generate Textured Mesh',
+                    btn = gr.Button(value='Tạo mesh', variant='primary', min_width=100, elem_classes='primary-action')
+                    btn_all = gr.Button(value='Tạo mesh có texture',
                                         variant='primary',
                                         visible=HAS_TEXTUREGEN,
                                         min_width=100,
@@ -688,19 +775,25 @@ def build_app():
                     file_out = gr.File(label="File", visible=False)
                     file_out2 = gr.File(label="File", visible=False)
 
+                gr.HTML("""
+                <div class="panel-heading" style="margin-top: 14px;">
+                    <strong>Thiết lập</strong>
+                    <span>Tinh chỉnh tốc độ, chất lượng mesh và định dạng xuất file.</span>
+                </div>
+                """)
                 with gr.Tabs(selected='tab_options' if TURBO_MODE else 'tab_export'):
-                    with gr.Tab("Options", id='tab_options', visible=TURBO_MODE):
-                        gen_mode = gr.Radio(label='Generation Mode',
-                                            info='Recommendation: Turbo for most cases, Fast for very complex cases, Standard seldom use.',
-                                            choices=['Turbo', 'Fast', 'Standard'], value='Turbo')
-                        decode_mode = gr.Radio(label='Decoding Mode',
-                                               info='The resolution for exporting mesh from generated vectset',
-                                               choices=['Low', 'Standard', 'High'],
-                                               value='Standard')
-                    with gr.Tab('Advanced Options', id='tab_advanced_options'):
+                    with gr.Tab("Cơ bản", id='tab_options', visible=TURBO_MODE):
+                        gen_mode = gr.Radio(label='Chế độ tạo hình',
+                                            info='Turbo phù hợp đa số trường hợp; Fast dùng cho ảnh phức tạp; Standard ưu tiên chất lượng ổn định.',
+                                            choices=['Turbo', 'Nhanh', 'Tiêu chuẩn'], value='Turbo')
+                        decode_mode = gr.Radio(label='Độ chi tiết mesh',
+                                               info='Điều chỉnh độ phân giải khi giải mã mesh.',
+                                               choices=['Thấp', 'Tiêu chuẩn', 'Cao'],
+                                               value='Tiêu chuẩn')
+                    with gr.Tab('Nâng cao', id='tab_advanced_options'):
                         with gr.Row():
-                            check_box_rembg = gr.Checkbox(value=True, label='Remove Background', min_width=100)
-                            randomize_seed = gr.Checkbox(label="Randomize seed", value=True, min_width=100)
+                            check_box_rembg = gr.Checkbox(value=True, label='Xóa nền', min_width=100)
+                            randomize_seed = gr.Checkbox(label="Seed ngẫu nhiên", value=True, min_width=100)
                         seed = gr.Slider(
                             label="Seed",
                             minimum=0,
@@ -713,71 +806,83 @@ def build_app():
                             num_steps = gr.Slider(maximum=100,
                                                   minimum=1,
                                                   value=5 if 'turbo' in args.subfolder else 30,
-                                                  step=1, label='Inference Steps')
-                            octree_resolution = gr.Slider(maximum=512, minimum=16, value=256, label='Octree Resolution')
+                                                  step=1, label='Số bước suy luận')
+                            octree_resolution = gr.Slider(maximum=512, minimum=16, value=256, label='Độ phân giải Octree')
                         with gr.Row():
                             cfg_scale = gr.Number(value=5.0, label='Guidance Scale', min_width=100)
                             num_chunks = gr.Slider(maximum=5000000, minimum=1000, value=8000,
-                                                   label='Number of Chunks', min_width=100)
-                    with gr.Tab("Export", id='tab_export'):
+                                                   label='Số chunk xử lý', min_width=100)
+                    with gr.Tab("Xuất file", id='tab_export'):
                         with gr.Row():
-                            file_type = gr.Dropdown(label='File Type', choices=SUPPORTED_FORMATS,
+                            file_type = gr.Dropdown(label='Định dạng', choices=SUPPORTED_FORMATS,
                                                     value='glb', min_width=100)
-                            reduce_face = gr.Checkbox(label='Simplify Mesh', value=False, min_width=100)
-                            export_texture = gr.Checkbox(label='Include Texture', value=False,
+                            reduce_face = gr.Checkbox(label='Giảm số mặt', value=False, min_width=100)
+                            export_texture = gr.Checkbox(label='Kèm texture', value=False,
                                                          visible=False, min_width=100)
                         target_face_num = gr.Slider(maximum=1000000, minimum=100, value=10000,
-                                                    label='Target Face Number')
+                                                    label='Số mặt mục tiêu')
                         with gr.Row():
-                            confirm_export = gr.Button(value="Prepare Export", min_width=100, elem_classes='secondary-action')
-                            file_export = gr.DownloadButton(label="Download", variant='primary',
+                            confirm_export = gr.Button(value="Chuẩn bị xuất", min_width=100, elem_classes='secondary-action')
+                            file_export = gr.DownloadButton(label="Tải xuống", variant='primary',
                                                             interactive=False, min_width=100,
                                                             elem_classes='primary-action')
 
             with gr.Column(scale=7, elem_classes='studio-viewer'):
+                gr.HTML("""
+                <div class="panel-heading">
+                    <strong>Xem trước mô hình</strong>
+                    <span>Xoay, phóng to và kiểm tra mesh sau khi tạo.</span>
+                </div>
+                """)
                 with gr.Tabs(selected='gen_mesh_panel') as tabs_output:
-                    with gr.Tab('Generated Mesh', id='gen_mesh_panel'):
-                        html_gen_mesh = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
-                    with gr.Tab('Exporting Mesh', id='export_mesh_panel'):
-                        html_export_mesh = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
-                    with gr.Tab('Mesh Statistic', id='stats_panel'):
-                        stats = gr.Json({}, label='Mesh Stats')
+                    with gr.Tab('Mô hình đã tạo', id='gen_mesh_panel'):
+                        html_gen_mesh = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Kết quả')
+                    with gr.Tab('Bản xuất file', id='export_mesh_panel'):
+                        html_export_mesh = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Kết quả xuất')
+                    with gr.Tab('Thông số mesh', id='stats_panel'):
+                        stats = gr.Json({}, label='Thông số')
 
             with gr.Column(scale=3 if MV_MODE else 2, elem_classes='studio-gallery'):
+                gr.HTML("""
+                <div class="panel-heading">
+                    <strong>Thư viện mẫu</strong>
+                    <span>Chọn nhanh ảnh mẫu để thử pipeline.</span>
+                </div>
+                """)
                 with gr.Tabs(selected='tab_img_gallery') as gallery:
-                    with gr.Tab('Image to 3D Gallery', id='tab_img_gallery', visible=not MV_MODE) as tab_gi:
+                    with gr.Tab('Ảnh mẫu', id='tab_img_gallery', visible=not MV_MODE) as tab_gi:
                         with gr.Row():
                             gr.Examples(examples=example_is, inputs=[image],
-                                        label=None, examples_per_page=18)
+                                        label='Mẫu ảnh', examples_per_page=18)
 
-                    with gr.Tab('Text to 3D Gallery', id='tab_txt_gallery', visible=HAS_T2I and not MV_MODE) as tab_gt:
+                    with gr.Tab('Mẫu văn bản', id='tab_txt_gallery', visible=HAS_T2I and not MV_MODE) as tab_gt:
                         with gr.Row():
                             gr.Examples(examples=example_ts, inputs=[caption],
-                                        label=None, examples_per_page=18)
-                    with gr.Tab('MultiView to 3D Gallery', id='tab_mv_gallery', visible=MV_MODE) as tab_mv:
+                                        label='Mẫu prompt', examples_per_page=18)
+                    with gr.Tab('Mẫu nhiều góc', id='tab_mv_gallery', visible=MV_MODE) as tab_mv:
                         with gr.Row():
                             gr.Examples(examples=example_mvs,
                                         inputs=[mv_image_front, mv_image_back, mv_image_left, mv_image_right],
-                                        label=None, examples_per_page=6)
+                                        label='Mẫu multiview', examples_per_page=6)
 
         gr.HTML(f"""
         <div class="studio-status">
-        Active model: Shape Generation ({args.model_path}/{args.subfolder}) | Texture Generation ({'Hunyuan3D-2' if HAS_TEXTUREGEN else 'Unavailable'})
+        Model đang dùng: Shape ({args.model_path}/{args.subfolder}) | Texture ({'Hunyuan3D-2' if HAS_TEXTUREGEN else 'Không khả dụng'})
         </div>
         """)
         if not HAS_TEXTUREGEN:
             gr.HTML("""
             <div class="studio-warning">
-                <b>Warning: </b>
-                Texture synthesis is disable due to missing requirements,
-                 please install requirements following <a href="https://github.com/Tencent/Hunyuan3D-2?tab=readme-ov-file#install-requirements">README.md</a>to activate it.
+                <b>Cảnh báo: </b>
+                Tạo texture đang bị tắt do thiếu yêu cầu cài đặt.
+                Xem <a href="https://github.com/Tencent/Hunyuan3D-2?tab=readme-ov-file#install-requirements">README.md</a> để bật lại.
             </div>
             """)
         if not args.enable_t23d:
             gr.HTML("""
             <div class="studio-warning">
-                <b>Warning: </b>
-                Text to 3D is disable. To activate it, please run `python gradio_app.py --enable_t23d`.
+                <b>Lưu ý: </b>
+                Text to 3D đang tắt. Để bật, chạy `python gradio_app.py --enable_t23d`.
             </div>
             """)
 
@@ -842,7 +947,7 @@ def build_app():
         def on_gen_mode_change(value):
             if value == 'Turbo':
                 return gr.update(value=5)
-            elif value == 'Fast':
+            elif value in ['Fast', 'Nhanh']:
                 return gr.update(value=10)
             else:
                 return gr.update(value=30)
@@ -850,9 +955,9 @@ def build_app():
         gen_mode.change(on_gen_mode_change, inputs=[gen_mode], outputs=[num_steps])
 
         def on_decode_mode_change(value):
-            if value == 'Low':
+            if value in ['Low', 'Thấp']:
                 return gr.update(value=196)
-            elif value == 'Standard':
+            elif value in ['Standard', 'Tiêu chuẩn']:
                 return gr.update(value=256)
             else:
                 return gr.update(value=384)
@@ -935,8 +1040,8 @@ if __name__ == '__main__':
     HTML_OUTPUT_PLACEHOLDER = f"""
     <div class='empty-viewer'>
       <div>
-        <strong>Ready for generation</strong>
-        <span>Upload a source image and generate a mesh to preview it here.</span>
+        <strong>Sẵn sàng tạo mô hình</strong>
+        <span>Tải ảnh nguồn lên rồi tạo mesh để xem trước tại đây.</span>
       </div>
     </div>
     """
