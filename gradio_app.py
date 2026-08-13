@@ -399,6 +399,11 @@ def build_app():
         background: var(--studio-bg) !important;
     }
 
+    #component-0,
+    .contain {
+        background: var(--studio-bg) !important;
+    }
+
     .app-hero {
         display: flex;
         align-items: flex-end;
@@ -475,6 +480,12 @@ def build_app():
         border-radius: 8px !important;
         background: var(--studio-panel) !important;
         box-shadow: var(--studio-shadow);
+    }
+
+    .studio-panel > div,
+    .studio-viewer > div,
+    .studio-gallery > div {
+        background: transparent !important;
     }
 
     .studio-viewer {
@@ -579,6 +590,19 @@ def build_app():
         border-color: transparent !important;
     }
 
+    .studio-panel [data-testid="image"],
+    .studio-panel .image-container,
+    .studio-panel .dropzone {
+        border-radius: 8px !important;
+        overflow: hidden !important;
+    }
+
+    .studio-panel textarea,
+    .studio-panel input,
+    .studio-panel select {
+        border-radius: 8px !important;
+    }
+
     .mv-image button .wrap {
         font-size: 10px;
     }
@@ -627,7 +651,7 @@ def build_app():
     """
 
     with gr.Blocks(theme=gr.themes.Base(), title='Hunyuan-3D-2.0', analytics_enabled=False, css=custom_css) as demo:
-        gr.HTML(title_html)
+        gr.HTML(f"<style>{custom_css}</style>{title_html}")
 
         with gr.Row(elem_classes='studio-grid'):
             with gr.Column(scale=3, elem_classes='studio-panel'):
