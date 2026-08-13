@@ -146,12 +146,15 @@ def _gen_shape(
     check_box_rembg=False,
     num_chunks=200000,
     randomize_seed: bool = False,
+    progress=None,
 ):
+    if progress:
+        progress(0.02, desc="Đang kiểm tra đầu vào")
     if not MV_MODE and image is None and caption is None:
-        raise gr.Error("Please provide either a caption or an image.")
+        raise gr.Error("Vui lòng cung cấp ảnh hoặc mô tả văn bản.")
     if MV_MODE:
         if mv_image_front is None and mv_image_back is None and mv_image_left is None and mv_image_right is None:
-            raise gr.Error("Please provide at least one view image.")
+            raise gr.Error("Vui lòng cung cấp ít nhất một ảnh góc nhìn.")
         image = {}
         if mv_image_front:
             image['front'] = mv_image_front
@@ -186,16 +189,20 @@ def _gen_shape(
 
     if image is None:
         start_time = time.time()
+        if progress:
+            progress(0.08, desc="Đang tạo ảnh từ mô tả")
         try:
             image = t2i_worker(caption)
         except Exception as e:
-            raise gr.Error(f"Text to 3D is disable. Please enable it by `python gradio_app.py --enable_t23d`.")
+            raise gr.Error("Text to 3D đang tắt. Hãy chạy `python gradio_app.py --enable_t23d` để bật.")
         time_meta['text2image'] = time.time() - start_time
 
     # remove disk io to make responding faster, uncomment at your will.
     # image.save(os.path.join(save_folder, 'input.png'))
     if MV_MODE:
         start_time = time.time()
+        if progress:
+            progress(0.15, desc="Đang xử lý nền ảnh nhiều góc")
         for k, v in image.items():
             if check_box_rembg or v.mode == "RGB":
                 img = rmbg_worker(v.convert('RGB'))
@@ -204,6 +211,8 @@ def _gen_shape(
     else:
         if check_box_rembg or image.mode == "RGB":
             start_time = time.time()
+            if progress:
+                progress(0.15, desc="Đang xóa nền ảnh")
             image = rmbg_worker(image.convert('RGB'))
             time_meta['remove background'] = time.time() - start_time
 
@@ -212,6 +221,8 @@ def _gen_shape(
 
     # image to white model
     start_time = time.time()
+    if progress:
+        progress(0.28, desc="Đang sinh mesh 3D")
 
     generator = torch.Generator()
     generator = generator.manual_seed(int(seed))
@@ -228,6 +239,8 @@ def _gen_shape(
     logger.info("---Shape generation takes %s seconds ---" % (time.time() - start_time))
 
     tmp_start = time.time()
+    if progress:
+        progress(0.78, desc="Đang chuyển đổi sang mesh")
     mesh = export_to_trimesh(outputs)[0]
     time_meta['export to trimesh'] = time.time() - tmp_start
 
@@ -236,6 +249,8 @@ def _gen_shape(
 
     stats['time'] = time_meta
     main_image = image if not MV_MODE else image['front']
+    if progress:
+        progress(0.86, desc="Đã tạo mesh")
     return mesh, main_image, save_folder, stats, seed
 
 
@@ -253,8 +268,10 @@ def generation_all(
     check_box_rembg=False,
     num_chunks=200000,
     randomize_seed: bool = False,
+    progress=gr.Progress(track_tqdm=True),
 ):
     start_time_0 = time.time()
+    progress(0.01, desc="Đang bắt đầu tạo mesh có texture")
     mesh, image, save_folder, stats, seed = _gen_shape(
         caption,
         image,
@@ -269,7 +286,9 @@ def generation_all(
         check_box_rembg=check_box_rembg,
         num_chunks=num_chunks,
         randomize_seed=randomize_seed,
+        progress=progress,
     )
+    progress(0.88, desc="Đang lưu mesh trắng")
     path = export_mesh(mesh, save_folder, textured=False)
 
     # tmp_time = time.time()
@@ -279,11 +298,13 @@ def generation_all(
     # stats['time']['postprocessing'] = time.time() - tmp_time
 
     tmp_time = time.time()
+    progress(0.90, desc="Đang tối ưu số mặt")
     mesh = face_reduce_worker(mesh)
     logger.info("---Face Reduction takes %s seconds ---" % (time.time() - tmp_time))
     stats['time']['face reduction'] = time.time() - tmp_time
 
     tmp_time = time.time()
+    progress(0.94, desc="Đang tạo texture")
     textured_mesh = texgen_worker(mesh, image)
     logger.info("---Texture Generation takes %s seconds ---" % (time.time() - tmp_time))
     stats['time']['texture generation'] = time.time() - tmp_time
@@ -291,6 +312,7 @@ def generation_all(
 
     textured_mesh.metadata['extras'] = stats
     path_textured = export_mesh(textured_mesh, save_folder, textured=True)
+    progress(0.98, desc="Đang dựng khung xem trước")
     model_viewer_html_textured = build_model_viewer_html(save_folder, height=HTML_HEIGHT, width=HTML_WIDTH,
                                                          textured=True)
     if args.low_vram_mode:
@@ -318,8 +340,10 @@ def shape_generation(
     check_box_rembg=False,
     num_chunks=200000,
     randomize_seed: bool = False,
+    progress=gr.Progress(track_tqdm=True),
 ):
     start_time_0 = time.time()
+    progress(0.01, desc="Đang bắt đầu tạo mesh")
     mesh, image, save_folder, stats, seed = _gen_shape(
         caption,
         image,
@@ -334,11 +358,14 @@ def shape_generation(
         check_box_rembg=check_box_rembg,
         num_chunks=num_chunks,
         randomize_seed=randomize_seed,
+        progress=progress,
     )
     stats['time']['total'] = time.time() - start_time_0
     mesh.metadata['extras'] = stats
 
+    progress(0.92, desc="Đang lưu mesh")
     path = export_mesh(mesh, save_folder, textured=False)
+    progress(0.97, desc="Đang dựng khung xem trước")
     model_viewer_html = build_model_viewer_html(save_folder, height=HTML_HEIGHT, width=HTML_WIDTH)
     if args.low_vram_mode:
         torch.cuda.empty_cache()
@@ -380,6 +407,61 @@ def build_app():
         <a href="#">Báo cáo</a>
         <a href="https://huggingface.co/Tencent/Hunyuan3D-2">Model</a>
       </nav>
+      <div id="connection-toast" class="connection-toast" aria-live="polite">
+        <strong>Đang kết nối lại</strong>
+        <span>Hệ thống sẽ tự thử lại trong giây lát.</span>
+      </div>
+      <script>
+      (() => {{
+        const toast = document.getElementById("connection-toast");
+        if (!toast) return;
+        let retryDelay = 2000;
+        const maxDelay = 15000;
+        const show = (title, detail, mode) => {{
+          toast.querySelector("strong").textContent = title;
+          toast.querySelector("span").textContent = detail;
+          toast.dataset.mode = mode;
+          toast.classList.add("visible");
+        }};
+        const hide = () => {{
+          toast.classList.remove("visible");
+          retryDelay = 2000;
+        }};
+        const ping = async () => {{
+          try {{
+            const response = await fetch("/health", {{ cache: "no-store" }});
+            if (!response.ok) throw new Error("health check failed");
+            hide();
+            setTimeout(ping, 5000);
+          }} catch (error) {{
+            show("Đang kết nối lại", `Thử lại sau ${{Math.round(retryDelay / 1000)}} giây...`, "warning");
+            setTimeout(ping, retryDelay);
+            retryDelay = Math.min(maxDelay, Math.round(retryDelay * 1.6));
+          }}
+        }};
+        window.addEventListener("offline", () => show("Mất mạng", "Kiểm tra kết nối rồi hệ thống sẽ tự thử lại.", "error"));
+        window.addEventListener("online", () => {{
+          show("Đã có mạng", "Đang nối lại server...", "success");
+          retryDelay = 1000;
+          ping();
+        }});
+        const placeholderSvg = encodeURIComponent(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">
+            <rect width="96" height="96" rx="10" fill="#e9f0f7"/>
+            <path d="M25 62l16-18 12 13 8-9 12 14H25z" fill="#9fb3ca"/>
+            <circle cx="63" cy="32" r="7" fill="#b8c7df"/>
+          </svg>
+        `);
+        document.addEventListener("error", (event) => {{
+          const target = event.target;
+          if (target && target.tagName === "IMG" && target.closest(".studio-gallery")) {{
+            target.classList.add("img-fallback");
+            target.src = `data:image/svg+xml;charset=utf-8,${{placeholderSvg}}`;
+          }}
+        }}, true);
+        setTimeout(ping, 3000);
+      }})();
+      </script>
     </section>
     """
     custom_css = """
@@ -583,6 +665,19 @@ def build_app():
         background: var(--studio-accent-strong) !important;
     }
 
+    .primary-action button:disabled,
+    .secondary-action button:disabled,
+    button:disabled {
+        opacity: 0.62 !important;
+        cursor: not-allowed !important;
+        box-shadow: none !important;
+    }
+
+    .progress-text,
+    .progress-bar {
+        color: var(--studio-accent-strong) !important;
+    }
+
     .secondary-action button {
         border-radius: 8px !important;
         font-weight: 650 !important;
@@ -631,6 +726,69 @@ def build_app():
         font-size: 13px;
     }
 
+    .connection-toast {
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        z-index: 9999;
+        display: grid;
+        gap: 3px;
+        width: min(320px, calc(100vw - 36px));
+        padding: 12px 14px;
+        border: 1px solid #f6c768;
+        border-radius: 8px;
+        background: #fff8e6;
+        color: #7c5600;
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-8px);
+        transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .connection-toast.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .connection-toast strong {
+        font-size: 13px;
+        line-height: 1.2;
+    }
+
+    .connection-toast span {
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
+    .connection-toast[data-mode="error"] {
+        border-color: #fecaca;
+        background: #fff1f2;
+        color: #9f1239;
+    }
+
+    .connection-toast[data-mode="success"] {
+        border-color: #bbf7d0;
+        background: #f0fdf4;
+        color: #166534;
+    }
+
+    .toast-wrap,
+    .toast-container {
+        top: 18px !important;
+        right: 18px !important;
+        left: auto !important;
+        width: min(340px, calc(100vw - 36px)) !important;
+        pointer-events: none !important;
+    }
+
+    .toast-wrap > *,
+    .toast-container > * {
+        border-radius: 8px !important;
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14) !important;
+        pointer-events: auto !important;
+    }
+
     .studio-gallery .gallery,
     .studio-gallery table {
         width: 100% !important;
@@ -642,6 +800,14 @@ def build_app():
         object-fit: cover !important;
         border-radius: 8px !important;
         border: 1px solid var(--studio-border) !important;
+        background:
+            linear-gradient(90deg, #eef3f8 25%, #f8fbff 37%, #eef3f8 63%) !important;
+        background-size: 400% 100% !important;
+        animation: skeleton-loading 1.4s ease infinite !important;
+    }
+
+    .studio-gallery img:not(.img-fallback)[src] {
+        animation: none !important;
         background: #f8fafc !important;
     }
 
@@ -649,6 +815,11 @@ def build_app():
     .studio-gallery th {
         padding: 4px !important;
         border-color: transparent !important;
+    }
+
+    @keyframes skeleton-loading {
+        0% { background-position: 100% 50%; }
+        100% { background-position: 0 50%; }
     }
 
     .studio-panel [data-testid="image"],
@@ -717,6 +888,24 @@ def build_app():
         margin-bottom: 6px;
     }
 
+    @media (max-width: 1280px) {
+        .studio-grid {
+            flex-wrap: wrap !important;
+        }
+
+        .studio-panel {
+            flex: 1 1 360px !important;
+        }
+
+        .studio-viewer {
+            flex: 2 1 620px !important;
+        }
+
+        .studio-gallery {
+            flex: 1 1 100% !important;
+        }
+    }
+
     @media (max-width: 1100px) {
         .app-hero {
             align-items: flex-start;
@@ -726,6 +915,10 @@ def build_app():
         .app-links {
             justify-content: flex-start;
             min-width: 0;
+        }
+
+        .empty-viewer {
+            min-height: 460px;
         }
     }
 
@@ -1026,6 +1219,9 @@ if __name__ == '__main__':
     parser.add_argument('--enable_flashvdm', action='store_true')
     parser.add_argument('--compile', action='store_true')
     parser.add_argument('--low_vram_mode', action='store_true')
+    parser.add_argument('--queue_max_size', type=int, default=16)
+    parser.add_argument('--concurrency_limit', type=int, default=1)
+    parser.add_argument('--timeout_keep_alive', type=int, default=120)
     args = parser.parse_args()
 
     SAVE_DIR = args.cache_path
@@ -1110,6 +1306,23 @@ if __name__ == '__main__':
     # https://discuss.huggingface.co/t/how-to-serve-an-html-file/33921/2
     # create a FastAPI app
     app = FastAPI()
+
+    @app.get("/health")
+    async def health():
+        gpu = {}
+        if torch.cuda.is_available():
+            gpu = {
+                "device": torch.cuda.get_device_name(0),
+                "allocated_mb": round(torch.cuda.memory_allocated() / 1024 / 1024, 2),
+                "reserved_mb": round(torch.cuda.memory_reserved() / 1024 / 1024, 2),
+            }
+        return {
+            "status": "ok",
+            "queue_max_size": args.queue_max_size,
+            "concurrency_limit": args.concurrency_limit,
+            "gpu": gpu,
+        }
+
     # create a static directory to store the static files
     static_dir = Path(SAVE_DIR).absolute()
     static_dir.mkdir(parents=True, exist_ok=True)
@@ -1119,5 +1332,17 @@ if __name__ == '__main__':
     if args.low_vram_mode:
         torch.cuda.empty_cache()
     demo = build_app()
+    demo.queue(
+        status_update_rate="auto",
+        max_size=args.queue_max_size,
+        default_concurrency_limit=args.concurrency_limit,
+    )
     app = gr.mount_gradio_app(app, demo, path="/")
-    uvicorn.run(app, host=args.host, port=args.port, workers=1)
+    uvicorn.run(
+        app,
+        host=args.host,
+        port=args.port,
+        workers=1,
+        timeout_keep_alive=args.timeout_keep_alive,
+        limit_concurrency=max(args.queue_max_size + 8, 32),
+    )
