@@ -53,9 +53,13 @@
             justify-content: center;
             align-items: center;
             border-radius: 8px;
-            border-color: #e5e7eb;
-            border-style: solid;
-            border-width: 1px;
+            border: 1px solid #dbe3ef;
+            background: #f8fbff;
+            overflow: hidden;
+        }
+
+        model-viewer {
+            max-width: 100%;
         }
     </style>
 </head>
@@ -63,7 +67,7 @@
 <body>
 <div class="centered-container">
     <div class="column is-mobile is-centered">
-        <model-viewer id="modelviewer" style="height: #height#px; width: #width#px;"
+        <model-viewer id="modelviewer" style="height: #height#px; width: min(#width#px, 100%);"
                       rotation-per-second="10deg"
                       src="#src#" disable-tap
                       environment-image="neutral"

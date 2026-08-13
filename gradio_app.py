@@ -360,25 +360,225 @@ def build_app():
         title = title.replace(':', '-Turbo: Fast ')
 
     title_html = f"""
-    <div style="font-size: 2em; font-weight: bold; text-align: center; margin-bottom: 5px">
-
-    {title}
-    </div>
-    <div align="center">
-    Tencent Hunyuan3D Team
-    </div>
-    <div align="center">
-      <a href="https://github.com/tencent/Hunyuan3D-2">Github</a> &ensp; 
-      <a href="http://3d-models.hunyuan.tencent.com">Homepage</a> &ensp;
-      <a href="https://3d.hunyuan.tencent.com">Hunyuan3D Studio</a> &ensp;
-      <a href="#">Technical Report</a> &ensp;
-      <a href="https://huggingface.co/Tencent/Hunyuan3D-2"> Pretrained Models</a> &ensp;
-    </div>
+    <section class="app-hero">
+      <div>
+        <p class="app-kicker">Tencent Hunyuan3D Team</p>
+        <h1>{title}</h1>
+        <p class="app-subtitle">Create production-ready 3D mesh assets from image prompts, then export GLB, OBJ, PLY, or STL.</p>
+      </div>
+      <nav class="app-links">
+        <a href="https://github.com/tencent/Hunyuan3D-2">GitHub</a>
+        <a href="http://3d-models.hunyuan.tencent.com">Homepage</a>
+        <a href="https://3d.hunyuan.tencent.com">Studio</a>
+        <a href="#">Report</a>
+        <a href="https://huggingface.co/Tencent/Hunyuan3D-2">Models</a>
+      </nav>
+    </section>
     """
     custom_css = """
-    .app.svelte-wpkpf6.svelte-wpkpf6:not(.fill_width) {
-        max-width: 1480px;
+    :root {
+        --studio-bg: #f6f8fb;
+        --studio-panel: #ffffff;
+        --studio-border: #dbe3ef;
+        --studio-text: #111827;
+        --studio-muted: #5b6677;
+        --studio-accent: #2563eb;
+        --studio-accent-strong: #1d4ed8;
+        --studio-soft: #eef4ff;
+        --studio-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
     }
+
+    body, gradio-app {
+        background: var(--studio-bg) !important;
+        color: var(--studio-text);
+    }
+
+    .gradio-container {
+        max-width: 1680px !important;
+        padding: 18px 22px 24px !important;
+        background: var(--studio-bg) !important;
+    }
+
+    .app-hero {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 22px 24px;
+        margin-bottom: 18px;
+        border: 1px solid var(--studio-border);
+        border-radius: 8px;
+        background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%);
+        box-shadow: var(--studio-shadow);
+    }
+
+    .app-hero h1 {
+        margin: 4px 0 8px;
+        font-size: clamp(28px, 3vw, 44px);
+        line-height: 1.05;
+        letter-spacing: 0;
+        color: #0f172a;
+    }
+
+    .app-kicker {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--studio-accent);
+    }
+
+    .app-subtitle {
+        margin: 0;
+        max-width: 760px;
+        color: var(--studio-muted);
+        font-size: 15px;
+        line-height: 1.5;
+    }
+
+    .app-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+        min-width: 280px;
+    }
+
+    .app-links a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        padding: 0 12px;
+        border: 1px solid #cbd8ee;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #1f3b71;
+        font-size: 13px;
+        font-weight: 650;
+        text-decoration: none;
+    }
+
+    .app-links a:hover {
+        border-color: var(--studio-accent);
+        color: var(--studio-accent-strong);
+    }
+
+    .studio-grid {
+        gap: 16px !important;
+        align-items: stretch !important;
+    }
+
+    .studio-panel {
+        min-width: 0 !important;
+        padding: 14px !important;
+        border: 1px solid var(--studio-border) !important;
+        border-radius: 8px !important;
+        background: var(--studio-panel) !important;
+        box-shadow: var(--studio-shadow);
+    }
+
+    .studio-viewer {
+        padding: 14px !important;
+        border: 1px solid var(--studio-border) !important;
+        border-radius: 8px !important;
+        background: #fbfdff !important;
+        box-shadow: var(--studio-shadow);
+    }
+
+    .studio-gallery {
+        min-width: 280px !important;
+        padding: 14px !important;
+        border: 1px solid var(--studio-border) !important;
+        border-radius: 8px !important;
+        background: var(--studio-panel) !important;
+        box-shadow: var(--studio-shadow);
+    }
+
+    .studio-panel .tabs,
+    .studio-viewer .tabs,
+    .studio-gallery .tabs {
+        border: 0 !important;
+        background: transparent !important;
+    }
+
+    .tab-nav {
+        gap: 6px !important;
+        border-bottom: 1px solid var(--studio-border) !important;
+    }
+
+    .tab-nav button {
+        border-radius: 8px 8px 0 0 !important;
+        font-weight: 650 !important;
+        color: #4b5563 !important;
+    }
+
+    .tab-nav button.selected {
+        color: var(--studio-accent-strong) !important;
+        border-color: var(--studio-accent) !important;
+        background: var(--studio-soft) !important;
+    }
+
+    .primary-action button,
+    button.primary {
+        border-radius: 8px !important;
+        background: var(--studio-accent) !important;
+        border-color: var(--studio-accent) !important;
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22) !important;
+        font-weight: 700 !important;
+    }
+
+    .primary-action button:hover,
+    button.primary:hover {
+        background: var(--studio-accent-strong) !important;
+    }
+
+    .secondary-action button {
+        border-radius: 8px !important;
+        font-weight: 650 !important;
+    }
+
+    .studio-status {
+        margin-top: 14px;
+        padding: 12px 16px;
+        border: 1px solid var(--studio-border);
+        border-radius: 8px;
+        background: #ffffff;
+        color: var(--studio-muted);
+        text-align: center;
+        font-size: 13px;
+    }
+
+    .studio-warning {
+        margin-top: 8px;
+        padding: 10px 14px;
+        border: 1px solid #f6c768;
+        border-radius: 8px;
+        background: #fff8e6;
+        color: #7c5600;
+        text-align: center;
+        font-size: 13px;
+    }
+
+    .studio-gallery .gallery,
+    .studio-gallery table {
+        width: 100% !important;
+    }
+
+    .studio-gallery img {
+        width: 64px !important;
+        height: 64px !important;
+        object-fit: cover !important;
+        border-radius: 8px !important;
+        border: 1px solid var(--studio-border) !important;
+        background: #f8fafc !important;
+    }
+
+    .studio-gallery td,
+    .studio-gallery th {
+        padding: 4px !important;
+        border-color: transparent !important;
+    }
+
     .mv-image button .wrap {
         font-size: 10px;
     }
@@ -387,16 +587,53 @@ def build_app():
         width: 20px;
     }
 
+    .empty-viewer {
+        min-height: 650px;
+        width: 100%;
+        border-radius: 8px;
+        border: 1px dashed #b8c7df;
+        background:
+            linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(20, 184, 166, 0.08)),
+            #f8fbff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .empty-viewer div {
+        text-align: center;
+        color: #5b6677;
+    }
+
+    .empty-viewer strong {
+        display: block;
+        color: #111827;
+        font-size: 18px;
+        margin-bottom: 6px;
+    }
+
+    @media (max-width: 1100px) {
+        .app-hero {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .app-links {
+            justify-content: flex-start;
+            min-width: 0;
+        }
+    }
+
     """
 
     with gr.Blocks(theme=gr.themes.Base(), title='Hunyuan-3D-2.0', analytics_enabled=False, css=custom_css) as demo:
         gr.HTML(title_html)
 
-        with gr.Row():
-            with gr.Column(scale=3):
+        with gr.Row(elem_classes='studio-grid'):
+            with gr.Column(scale=3, elem_classes='studio-panel'):
                 with gr.Tabs(selected='tab_img_prompt') as tabs_prompt:
                     with gr.Tab('Image Prompt', id='tab_img_prompt', visible=not MV_MODE) as tab_ip:
-                        image = gr.Image(label='Image', type='pil', image_mode='RGBA', height=290)
+                        image = gr.Image(label='Source Image', type='pil', image_mode='RGBA', height=330)
 
                     with gr.Tab('Text Prompt', id='tab_txt_prompt', visible=HAS_T2I and not MV_MODE) as tab_tp:
                         caption = gr.Textbox(label='Text Prompt',
@@ -415,12 +652,13 @@ def build_app():
                             mv_image_right = gr.Image(label='Right', type='pil', image_mode='RGBA', height=140,
                                                       min_width=100, elem_classes='mv-image')
 
-                with gr.Row():
-                    btn = gr.Button(value='Gen Shape', variant='primary', min_width=100)
-                    btn_all = gr.Button(value='Gen Textured Shape',
+                with gr.Row(equal_height=True):
+                    btn = gr.Button(value='Generate Mesh', variant='primary', min_width=100, elem_classes='primary-action')
+                    btn_all = gr.Button(value='Generate Textured Mesh',
                                         variant='primary',
                                         visible=HAS_TEXTUREGEN,
-                                        min_width=100)
+                                        min_width=100,
+                                        elem_classes='primary-action')
 
                 with gr.Group():
                     file_out = gr.File(label="File", visible=False)
@@ -467,11 +705,12 @@ def build_app():
                         target_face_num = gr.Slider(maximum=1000000, minimum=100, value=10000,
                                                     label='Target Face Number')
                         with gr.Row():
-                            confirm_export = gr.Button(value="Transform", min_width=100)
+                            confirm_export = gr.Button(value="Prepare Export", min_width=100, elem_classes='secondary-action')
                             file_export = gr.DownloadButton(label="Download", variant='primary',
-                                                            interactive=False, min_width=100)
+                                                            interactive=False, min_width=100,
+                                                            elem_classes='primary-action')
 
-            with gr.Column(scale=6):
+            with gr.Column(scale=7, elem_classes='studio-viewer'):
                 with gr.Tabs(selected='gen_mesh_panel') as tabs_output:
                     with gr.Tab('Generated Mesh', id='gen_mesh_panel'):
                         html_gen_mesh = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
@@ -480,7 +719,7 @@ def build_app():
                     with gr.Tab('Mesh Statistic', id='stats_panel'):
                         stats = gr.Json({}, label='Mesh Stats')
 
-            with gr.Column(scale=3 if MV_MODE else 2):
+            with gr.Column(scale=3 if MV_MODE else 2, elem_classes='studio-gallery'):
                 with gr.Tabs(selected='tab_img_gallery') as gallery:
                     with gr.Tab('Image to 3D Gallery', id='tab_img_gallery', visible=not MV_MODE) as tab_gi:
                         with gr.Row():
@@ -498,13 +737,13 @@ def build_app():
                                         label=None, examples_per_page=6)
 
         gr.HTML(f"""
-        <div align="center">
-        Activated Model - Shape Generation ({args.model_path}/{args.subfolder}) ; Texture Generation ({'Hunyuan3D-2' if HAS_TEXTUREGEN else 'Unavailable'})
+        <div class="studio-status">
+        Active model: Shape Generation ({args.model_path}/{args.subfolder}) | Texture Generation ({'Hunyuan3D-2' if HAS_TEXTUREGEN else 'Unavailable'})
         </div>
         """)
         if not HAS_TEXTUREGEN:
             gr.HTML("""
-            <div style="margin-top: 5px;"  align="center">
+            <div class="studio-warning">
                 <b>Warning: </b>
                 Texture synthesis is disable due to missing requirements,
                  please install requirements following <a href="https://github.com/Tencent/Hunyuan3D-2?tab=readme-ov-file#install-requirements">README.md</a>to activate it.
@@ -512,7 +751,7 @@ def build_app():
             """)
         if not args.enable_t23d:
             gr.HTML("""
-            <div style="margin-top: 5px;"  align="center">
+            <div class="studio-warning">
                 <b>Warning: </b>
                 Text to 3D is disable. To activate it, please run `python gradio_app.py --enable_t23d`.
             </div>
@@ -668,12 +907,12 @@ if __name__ == '__main__':
     TURBO_MODE = 'turbo' in args.subfolder
 
     HTML_HEIGHT = 690 if MV_MODE else 650
-    HTML_WIDTH = 500
+    HTML_WIDTH = 860
     HTML_OUTPUT_PLACEHOLDER = f"""
-    <div style='height: {650}px; width: 100%; border-radius: 8px; border-color: #e5e7eb; border-style: solid; border-width: 1px; display: flex; justify-content: center; align-items: center;'>
-      <div style='text-align: center; font-size: 16px; color: #6b7280;'>
-        <p style="color: #8d8d8d;">Welcome to Hunyuan3D!</p>
-        <p style="color: #8d8d8d;">No mesh here.</p>
+    <div class='empty-viewer'>
+      <div>
+        <strong>Ready for generation</strong>
+        <span>Upload a source image and generate a mesh to preview it here.</span>
       </div>
     </div>
     """
