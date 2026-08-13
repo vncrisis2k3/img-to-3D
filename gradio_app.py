@@ -1363,8 +1363,6 @@ if __name__ == '__main__':
         app,
         demo,
         path="/",
-        server_name=args.host,
-        server_port=args.port,
         show_error=True,
         max_file_size=args.max_file_size,
     )
