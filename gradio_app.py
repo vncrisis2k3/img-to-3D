@@ -35,27 +35,29 @@ MAX_SEED = int(1e7)
 
 def get_example_img_list():
     print('Loading example img list ...')
-    return sorted(glob('./assets/example_images/**/*.png', recursive=True))
+    root = Path(globals().get('CURRENT_DIR', os.getcwd())).resolve()
+    return [[str(Path(path).resolve())] for path in sorted(glob(str(root / 'assets' / 'example_images' / '**' / '*.png'), recursive=True))]
 
 
 def get_example_txt_list():
     print('Loading example txt list ...')
     txt_list = list()
-    for line in open('./assets/example_prompts.txt', encoding='utf-8'):
-        txt_list.append(line.strip())
+    root = Path(globals().get('CURRENT_DIR', os.getcwd())).resolve()
+    for line in open(root / 'assets' / 'example_prompts.txt', encoding='utf-8'):
+        txt_list.append([line.strip()])
     return txt_list
 
 
 def get_example_mv_list():
     print('Loading example mv list ...')
     mv_list = list()
-    root = './assets/example_mv_images'
+    root = Path(globals().get('CURRENT_DIR', os.getcwd())).resolve() / 'assets' / 'example_mv_images'
     for mv_dir in os.listdir(root):
         view_list = []
         for view in ['front', 'back', 'left', 'right']:
-            path = os.path.join(root, mv_dir, f'{view}.png')
+            path = root / mv_dir / f'{view}.png'
             if os.path.exists(path):
-                view_list.append(path)
+                view_list.append(str(path.resolve()))
             else:
                 view_list.append(None)
         mv_list.append(view_list)
@@ -379,6 +381,7 @@ def shape_generation(
 
 
 def build_app():
+    global APP_CUSTOM_CSS, APP_HEAD
     title = 'Hunyuan3D-2: High Resolution Textured 3D Assets Generation'
     if MV_MODE:
         title = 'Hunyuan3D-2mv: Image to 3D Generation with 1-4 Views'
@@ -412,57 +415,6 @@ def build_app():
         <strong>Đang kết nối lại</strong>
         <span>Hệ thống sẽ tự thử lại trong giây lát.</span>
       </div>
-      <script>
-      (() => {{
-        const toast = document.getElementById("connection-toast");
-        if (!toast) return;
-        let retryDelay = 2000;
-        const maxDelay = 15000;
-        const show = (title, detail, mode) => {{
-          toast.querySelector("strong").textContent = title;
-          toast.querySelector("span").textContent = detail;
-          toast.dataset.mode = mode;
-          toast.classList.add("visible");
-        }};
-        const hide = () => {{
-          toast.classList.remove("visible");
-          retryDelay = 2000;
-        }};
-        const ping = async () => {{
-          try {{
-            const response = await fetch("/health", {{ cache: "no-store" }});
-            if (!response.ok) throw new Error("health check failed");
-            hide();
-            setTimeout(ping, 5000);
-          }} catch (error) {{
-            show("Đang kết nối lại", `Thử lại sau ${{Math.round(retryDelay / 1000)}} giây...`, "warning");
-            setTimeout(ping, retryDelay);
-            retryDelay = Math.min(maxDelay, Math.round(retryDelay * 1.6));
-          }}
-        }};
-        window.addEventListener("offline", () => show("Mất mạng", "Kiểm tra kết nối rồi hệ thống sẽ tự thử lại.", "error"));
-        window.addEventListener("online", () => {{
-          show("Đã có mạng", "Đang nối lại server...", "success");
-          retryDelay = 1000;
-          ping();
-        }});
-        const placeholderSvg = encodeURIComponent(`
-          <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">
-            <rect width="96" height="96" rx="10" fill="#e9f0f7"/>
-            <path d="M25 62l16-18 12 13 8-9 12 14H25z" fill="#9fb3ca"/>
-            <circle cx="63" cy="32" r="7" fill="#b8c7df"/>
-          </svg>
-        `);
-        document.addEventListener("error", (event) => {{
-          const target = event.target;
-          if (target && target.tagName === "IMG" && target.closest(".studio-gallery")) {{
-            target.classList.add("img-fallback");
-            target.src = `data:image/svg+xml;charset=utf-8,${{placeholderSvg}}`;
-          }}
-        }}, true);
-        setTimeout(ping, 3000);
-      }})();
-      </script>
     </section>
     """
     custom_css = """
@@ -924,9 +876,78 @@ def build_app():
     }
 
     """
+    connection_script = """
+    <script>
+    (() => {
+      const start = () => {
+        const toast = document.getElementById("connection-toast");
+        if (!toast) {
+          setTimeout(start, 500);
+          return;
+        }
+        let retryDelay = 2000;
+        const maxDelay = 15000;
+        const show = (title, detail, mode) => {
+          toast.querySelector("strong").textContent = title;
+          toast.querySelector("span").textContent = detail;
+          toast.dataset.mode = mode;
+          toast.classList.add("visible");
+        };
+        const hide = () => {
+          toast.classList.remove("visible");
+          retryDelay = 2000;
+        };
+        const ping = async () => {
+          try {
+            const response = await fetch("/health", { cache: "no-store" });
+            if (!response.ok) throw new Error("health check failed");
+            hide();
+            setTimeout(ping, 5000);
+          } catch (error) {
+            show("Đang kết nối lại", `Thử lại sau ${Math.round(retryDelay / 1000)} giây...`, "warning");
+            setTimeout(ping, retryDelay);
+            retryDelay = Math.min(maxDelay, Math.round(retryDelay * 1.6));
+          }
+        };
+        window.addEventListener("offline", () => show("Mất mạng", "Kiểm tra kết nối rồi hệ thống sẽ tự thử lại.", "error"));
+        window.addEventListener("online", () => {
+          show("Đã có mạng", "Đang nối lại server...", "success");
+          retryDelay = 1000;
+          ping();
+        });
+        const placeholderSvg = encodeURIComponent(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">
+            <rect width="96" height="96" rx="10" fill="#e9f0f7"/>
+            <path d="M25 62l16-18 12 13 8-9 12 14H25z" fill="#9fb3ca"/>
+            <circle cx="63" cy="32" r="7" fill="#b8c7df"/>
+          </svg>
+        `);
+        document.addEventListener("error", (event) => {
+          const target = event.target;
+          if (target && target.tagName === "IMG" && target.closest(".studio-gallery")) {
+            target.classList.add("img-fallback");
+            target.src = `data:image/svg+xml;charset=utf-8,${placeholderSvg}`;
+          }
+        }, true);
+        setTimeout(ping, 3000);
+      };
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", start);
+      } else {
+        start();
+      }
+    })();
+    </script>
+    """
+    APP_CUSTOM_CSS = custom_css
+    APP_HEAD = f"<style>{custom_css}</style>{connection_script}"
 
-    with gr.Blocks(theme=gr.themes.Base(), title='Hunyuan-3D-2.0', analytics_enabled=False, css=custom_css) as demo:
-        gr.HTML(f"<style>{custom_css}</style>{title_html}")
+    with gr.Blocks(
+        theme=gr.themes.Base(),
+        title='Hunyuan-3D-2.0',
+        analytics_enabled=False,
+    ) as demo:
+        gr.HTML(title_html)
 
         with gr.Row(elem_classes='studio-grid'):
             with gr.Column(scale=3, elem_classes='studio-panel'):
@@ -1365,6 +1386,9 @@ if __name__ == '__main__':
         path="/",
         show_error=True,
         max_file_size=args.max_file_size,
+        allowed_paths=[str((Path(CURRENT_DIR) / 'assets').resolve()), str(static_dir.resolve())],
+        css=APP_CUSTOM_CSS,
+        head=APP_HEAD,
     )
     uvicorn.run(
         app,
